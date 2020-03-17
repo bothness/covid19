@@ -1,0 +1,290 @@
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, shrink-to-fit=no">
+<meta property="og:title" content="How fast is COVID-19 spreading?" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://bothness.github.io/covid19/" />
+<meta property="og:image" content="https://bothness.github.io/covid19/img/og.jpg" />
+<meta property="og:image:type" content="image/jpeg" />
+<meta property="og:description" content="Mapping the daily % increase in COVID-19 related deaths, by country." />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="description" content="Mapping the daily % increase in COVID-19 related deaths, by country.">
+<title>How fast is COVID-19 spreading?</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha256-L/W5Wfqfa0sdBNIKN9cG6QA5F2qx4qICmU2VgLruv9Y=" crossorigin="anonymous" />
+<style>
+body {
+  background-color: #eeeeee;
+}
+.rounded {
+  border-radius: 10px !important;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <div class="row">
+    <div class="col-lg-8 mr-auto pt-3">
+      <h2 class="font-weight-bold">How fast is COVID-19 spreading?</h2>
+      <p>These data visualizations are intended to give an idea of the present rate of spread of COVID-19 in different countries based on the latest <a href="https://github.com/CSSEGISandData/COVID-19/" target="_blank" class="text-info">data collected by Johns Hopkins CSSE</a>. The percentages represent a 7-day rolling average of the daily % increase in reported COVID-19 related deaths in each country. The visuals presently include countries that had reported at least 5 deaths as of one week ago.</p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-lg-5 my-4"><div class="bg-white p-3 rounded">
+      <h4 class="font-weight-bold">Rate by country</h4>
+      <small class="text-uppercase">Avg % daily increase in total deaths</small>
+      <div id="mapdiv"></div>
+      <div id="mapload" class="d-flex justify-content-center">
+        <div class="spinner-grow text-dark" role="status">
+          <span class="sr-only">Loading...</span>
+        </div>
+      </div>
+    </div></div>
+    <div class="col-lg-7 my-4"><div class="bg-white p-3 rounded">
+      <h4 class="font-weight-bold">Change over time</h4>
+      <small class="text-uppercase">Avg % daily increase in total deaths</small>
+      <div id="chartdiv"></div>
+      <div id="chartload" class="d-flex justify-content-center">
+        <div class="spinner-grow text-dark" role="status">
+          <span class="sr-only">Loading...</span>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+<div class="container-fluid bg-secondary">
+  <div class="container">
+  <div class="row">
+    <div class="col p-3 text-light">
+      <small>Coded by <a href="" target="_blank" class="text-info">Ahmad Barclay</a>. No rights reserved (Unlicense). <a href="https://github.com/bothness/covid19/" target="_blank" class="text-info">Get the code</a>. <a href="https://github.com/CSSEGISandData/COVID-19/" target="_blank" class="text-info">Get the data</a>.</small>
+    </div>
+  </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/1.51.1/plotly.min.js" integrity="sha256-qe/oN+ddr+wOzXyDWGSx8glJYbdQk2FwExwyQgNMsdQ=" crossorigin="anonymous"></script>
+<script>
+
+// GLOBALS
+
+// Data sources
+const mapcsv = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTEVpFkUojjr3MWNgzL8RR3vFpNVz1BPVbf3eYDxYOsgsavWVn-iz-fjcJyGy_D9VOgoyNB1PeOk8O-/pub?gid=190862641&single=true&output=csv";
+const chartcsv = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTEVpFkUojjr3MWNgzL8RR3vFpNVz1BPVbf3eYDxYOsgsavWVn-iz-fjcJyGy_D9VOgoyNB1PeOk8O-/pub?gid=1461513963&single=true&output=csv";
+
+// Colours for selected countries to highlight
+const colors = {
+  "China": "#ea582d",
+  "Iran": "#f39619",
+  "Italy": "#ffeb3c",
+  "Korea, South": "#8cc04c",
+  "France": "#009587",
+  "Spain": "#1cb7d0",
+  "Japan": "#428dcc",
+  "US": "#4052a0",
+  "United Kingdom": "#823d8f",
+  "World": "#333333"
+};
+
+// Coordinates (centroid) for countries broken down into districts in the raw data
+const coords = {
+  "US": {lat: 39.8, lon: -95.6},
+  "Australia": {lat: -25.7, lon: 134.5},
+  "Canada": {lat: 61.4, lon: -98.3},
+  "France": {lat: 42.2, lon: -2.8},
+  "United Kingdom": {lat: 54.1, lon: -2.9},
+  "China": {lat: 36.6, lon: 103.8}
+};
+
+// MAP PLOT CODE
+Plotly.d3.csv(mapcsv, function(err, rows){
+
+    function unpack(rows, key) {
+        return rows.map(function(row) { return row[key]; });
+    }
+
+    var cName = unpack(rows, 'Country/Region'),
+        cPerc = unpack(rows, 'Today'),
+        cLat = unpack(rows, 'Lat'),
+        cLon = unpack(rows, 'Long'),
+        cSize = [],
+        cCol = [],
+        hoverText = [],
+        scale = 10;
+
+    for ( var i = 0 ; i < cPerc.length; i++) {
+        let percent = parseFloat(cPerc[i]);
+        let currentSize = Math.pow(percent, 0.5) * scale;
+        console.log(percent);
+        if (percent > 0) {
+          let currentText = cName[i] + " " + cPerc[i];
+          hoverText.push(currentText);
+        } else {
+          let currentText = "";
+          hoverText.push(currentText);
+        }
+        cSize.push(currentSize);
+        if (cName[i] in colors) {
+          cCol.push(colors[cName[i]]);
+        } else {
+          cCol.push("#bbbbbb");
+        }
+        if (cName[i] in coords) {
+          cLat[i] = coords[cName[i]].lat;
+          cLon[i] = coords[cName[i]].lon;
+        }
+    }
+
+    var data = [{
+        type: 'scattergeo',
+        lat: cLat,
+        lon: cLon,
+        hoverinfo: 'text',
+        text: hoverText,
+        marker: {
+            size: cSize,
+            color: cCol,
+            line: {
+                color: 'black',
+                width: 1
+            },
+        }
+    }];
+
+    var layout = {
+        showlegend: false,
+        geo: {
+            scope: 'world',
+            projection: {
+                type: 'orthographic',
+                rotation: { lon: 113.7, lat: 30 }
+            },
+            showland: true,
+            landcolor: 'rgb(217, 217, 217)',
+            subunitwidth: 1,
+            countrywidth: 1,
+            subunitcolor: 'rgb(255,255,255)',
+            countrycolor: 'rgb(255,255,255)'
+        },
+        margin: {
+          autoexpand: true,
+          r: 10,
+          l: 10,
+          t: 10,
+          b: 10
+  },
+};
+
+// Initiate map plot
+Plotly.newPlot("mapdiv", data, layout, {displayModeBar: false, responsive: true, showLink: false});
+document.getElementById("mapload").remove();
+
+});
+
+// CHART PLOT CODE
+Plotly.d3.csv(chartcsv, function(err, rows) {
+  function unpack(rows, key) {
+    return rows.map(function(row) { return row[key]; });
+}
+
+// Create array of countries
+var countries = Object.keys(rows[0]);
+countries.shift(); // Remove col heading from countries array
+
+var dates = unpack(rows, 'Country/Region');
+
+var oldest = dates[0];
+var newest = dates[dates.length - 1];
+var weekago = dates[dates.length - 8];
+
+var data = [];
+
+for (var i = 0; i < countries.length; i++) {
+  var item = {};
+  var line = {};
+  item["type"] = "scatter";
+  item["mode"] = "lines";
+  item["name"] = countries[i];
+  item["x"] = dates;
+  item["y"] = unpack(rows, countries[i]);
+  if (countries[i] in colors) {
+    line["color"] = colors[countries[i]];
+    line["width"] = 2;
+  } else {
+    line["color"] = "#cccccc";
+    line["width"] = 1;
+  };
+  item["line"] = line;
+  if (item["y"][item["y"].length - 1] != "" && item.name != "Uzbekistan" && item.name != "Cruise Ship") {
+    data.push(item);
+  }
+}
+
+var layout = {
+  xaxis: {
+    autorange: false,
+    range: [weekago, newest],
+    rangeselector: {buttons: [
+        {
+          count: 7,
+          label: '7 days',
+          step: 'day',
+          stepmode: 'backward'
+        },
+        {
+          count: 28,
+          label: '28 days',
+          step: 'day',
+          stepmode: 'backward'
+        },
+        {step: 'all'}
+      ]},
+    rangeslider: {range: [oldest, newest]},
+    type: 'date'
+  },
+  yaxis: {
+    autorange: true,
+    range: [0,60],
+    type: 'linear'
+  },
+  annotations: [],
+  showlegend: false,
+  margin: {
+    autoexpand: true,
+    r: 100,
+    l: 10,
+    t: 10,
+    b: 10
+  },
+};
+
+for( var i = 0 ; i < data.length ; i++ ) {
+  if (data[i].name in colors) {
+    var result = {
+      xref: 'paper',
+      x: 1,
+      y: parseFloat(data[i].y[data[i].y.length - 1]),
+      xanchor: 'left',
+      yanchor: 'middle',
+      text: (Math.round(parseFloat(data[i].y[data[i].y.length - 1]) * 10) / 10) + "% " + data[i].name,
+      font: {
+        size: 14,
+        color: data[i].line.color
+      },
+      showarrow: false
+    }
+  }
+
+  layout.annotations.push(result);
+}
+
+// Initiate chart plot
+Plotly.newPlot('chartdiv', data, layout, {displayModeBar: false, responsive: true});
+document.getElementById("chartload").remove();
+});
+
+
+</script>
+</body>
+</html>
