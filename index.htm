@@ -92,7 +92,7 @@ const coords = {
   "US": {lat: 39.8, lon: -95.6},
   "Australia": {lat: -25.7, lon: 134.5},
   "Canada": {lat: 61.4, lon: -98.3},
-  "France": {lat: 46.2, lon: 2.2},
+  "France": {lat: 42.2, lon: -2.8},
   "United Kingdom": {lat: 54.1, lon: -2.9},
   "China": {lat: 36.6, lon: 103.8}
 };
@@ -116,7 +116,7 @@ Plotly.d3.csv(mapcsv, function(err, rows){
     for ( var i = 0 ; i < cPerc.length; i++) {
         let percent = parseFloat(cPerc[i]);
         let currentSize = Math.pow(percent, 0.5) * scale;
-        console.log(percent);
+
         if (percent > 0) {
           let currentText = cName[i] + " " + cPerc[i];
           hoverText.push(currentText);
@@ -252,28 +252,50 @@ var layout = {
   showlegend: false,
   margin: {
     autoexpand: true,
-    r: 100,
+    r: 120,
     l: 10,
     t: 10,
     b: 10
   },
 };
 
-for( var i = 0 ; i < data.length ; i++ ) {
+// CODE TO ADD IN-LINE LABELS TO CHART
+
+// Get the data for the countries that need labels
+var keyval = [];
+for (var i = 0 ; i < data.length ; i++) {
   if (data[i].name in colors) {
-    var result = {
-      xref: 'paper',
-      x: 1,
-      y: parseFloat(data[i].y[data[i].y.length - 1]),
-      xanchor: 'left',
-      yanchor: 'middle',
-      text: (Math.round(parseFloat(data[i].y[data[i].y.length - 1]) * 10) / 10) + "% " + data[i].name,
-      font: {
-        size: 14,
-        color: data[i].line.color
-      },
-      showarrow: false
-    }
+    keyval.push([data[i].name, parseFloat(data[i].y[data[i].y.length - 1])]);
+  }
+}
+keyval.sort(function(a, b) {
+  return a[1] - b[1];
+});
+
+// Add vertical space between the labels where needed
+keyval[0][2] = keyval[0][1];
+for (var i = 1; i < keyval.length; i++) {
+  if (keyval[i][1] < keyval[i - 1][2] + 3) {
+    keyval[i][2] = keyval[i - 1][2] + 3;
+  } else {
+    keyval[i][2] = keyval[i][1];
+  }
+}
+
+// Add the labels to the chart
+for (var i = 0 ; i < keyval.length ; i++) {
+  var result = {
+    xref: 'paper',
+    x: 1,
+    y: keyval[i][2],
+    xanchor: 'left',
+    yanchor: 'middle',
+    text: keyval[i][1] + "% " + keyval[i][0],
+    font: {
+      size: 14,
+      color: colors[keyval[i][0]]
+    },
+    showarrow: false
   }
 
   layout.annotations.push(result);
