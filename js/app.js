@@ -41,7 +41,8 @@ const coords = {
   "Canada": { lat: 61.4, lon: -98.3 },
   "France": { lat: 46.2, lon: 2.2 },
   "United Kingdom": { lat: 54.1, lon: -2.9 },
-  "China": { lat: 36.6, lon: 103.8 }
+  "China": { lat: 36.6, lon: 103.8 },
+  "Netherlands": { lat: 52.4, lon: 4.9 }
 };
 
 // CHART PLOT CODE
@@ -112,7 +113,8 @@ function plotChart() {
       yaxis: {
         autorange: true,
         range: [0, 60],
-        type: 'linear'
+        type: 'linear',
+        fixedrange: true
       },
       annotations: [],
       showlegend: false,
@@ -181,7 +183,7 @@ Plotly.d3.csv(mapcsv, function (err, rows) {
 
   // Remove redundant data
   rows = rows.filter(country => country.Today != "");
-  rows = rows.filter(country => country["Country/Region"] != "Cruise Ship");
+  rows = rows.filter(country => (country["Country/Region"] != "Cruise Ship" && country["Country/Region"] != "Diamond Princess"));
   rows.sort(function (a, b) {
     return a.Total - b.Total;
   });
@@ -261,8 +263,8 @@ Plotly.d3.csv(mapcsv, function (err, rows) {
     geo: {
       scope: 'world',
       projection: {
-        type: 'robinson',
-        rotation: { lon: 0, lat: 0 }
+        type: 'orthographic',
+        rotation: { lon: 5, lat: 40 }
       },
       showland: true,
       landcolor: 'rgb(217, 217, 217)',
@@ -327,7 +329,7 @@ Plotly.d3.csv(mapcsv, function (err, rows) {
   var barlayout = {
     xaxis: {
       autorange: false,
-      range: [0, cTot[cTot.length - 1] * 1.15]
+      range: [0, cTot[cTot.length - 1] * 1.2]
     },
     showlegend: false,
     barmode: 'stack',
@@ -343,7 +345,7 @@ Plotly.d3.csv(mapcsv, function (err, rows) {
   var perclayout = {
     xaxis: {
       autorange: false,
-      range: [0, Math.max(...cPercFloat) * 1.15]
+      range: [0, Math.max(...cPercFloat) * 1.2]
     },
     showlegend: false,
     barmode: 'stack',
