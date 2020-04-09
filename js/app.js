@@ -99,6 +99,12 @@ function plotChart() {
               stepmode: 'backward'
             },
             {
+              count: 14,
+              label: '14 days',
+              step: 'day',
+              stepmode: 'backward'
+            },
+            {
               count: 28,
               label: '28 days',
               step: 'day',
@@ -212,6 +218,7 @@ Plotly.d3.csv(mapcsv, function (err, rows) {
     cLon = unpack(rows, 'Long'),
     cSize = [],
     cCol = [],
+    percArray = [],
     hoverText = [],
     scale = 6;
 
@@ -241,6 +248,17 @@ Plotly.d3.csv(mapcsv, function (err, rows) {
       cLon[i] = coords[cName[i]].lon;
     }
   }
+
+  // Create sorted data for percent increase
+  for (name in cName) {
+    let perc = parseFloat(cPerc[name]);
+    percArray.push([cName[name], perc, cCol[name]]);
+  }
+  percArray.sort((a, b) => a[1] - b[1]);
+
+  var pName = percArray.map(item => item[0]);
+  var pPerc = percArray.map(item => item[1] + '%');
+  var pCol= percArray.map(item => item[2]);
 
   var mapdata = [{
     type: 'scattergeo',
@@ -312,18 +330,18 @@ Plotly.d3.csv(mapcsv, function (err, rows) {
   var bardata = [bartrace1, bartrace2];
 
   var percdata = [{
-    y: cName,
-    x: unpack(rows, 'Today'),
+    y: pName,
+    x: pPerc,
     name: 'Daily increase',
     orientation: 'h',
     marker: {
-      color: colprimary,
+      color: pCol,
       width: 0
     },
     type: 'bar',
-    text: unpack(rows, 'Today'),
+    text: pPerc,
     textposition: 'outside',
-    textfont: { color: colprimary }
+    textfont: { color: pCol }
   }];
 
   var barlayout = {
