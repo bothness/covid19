@@ -117,8 +117,7 @@ function plotChart() {
         type: 'date'
       },
       yaxis: {
-        autorange: true,
-        range: [0, 60],
+        range: [0, 50],
         type: 'linear',
         fixedrange: true
       },
