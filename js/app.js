@@ -61,7 +61,7 @@ function plotChart() {
 
     var oldest = dates[0];
     var newest = dates[dates.length - 1];
-    var weekago = dates[dates.length - 8];
+    var weeksago = dates[dates.length - 29];
 
     var date = new Date(newest);
     date = date.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -94,7 +94,7 @@ function plotChart() {
     var layout = {
       xaxis: {
         autorange: false,
-        range: [weekago, newest],
+        range: [weeksago, newest],
         rangeselector: {
           buttons: [
             {
@@ -153,8 +153,8 @@ function plotChart() {
     // Add vertical space between the labels where needed
     keyval[0][2] = keyval[0][1];
     for (var i = 1; i < keyval.length; i++) {
-      if (keyval[i][1] < keyval[i - 1][2] + 3) {
-        keyval[i][2] = keyval[i - 1][2] + 3;
+      if (keyval[i][1] < keyval[i - 1][2] + 1.8) {
+        keyval[i][2] = keyval[i - 1][2] + 1.8;
       } else {
         keyval[i][2] = keyval[i][1];
       }
