@@ -63,6 +63,11 @@ function plotChart() {
     var newest = dates[dates.length - 1];
     var weekago = dates[dates.length - 8];
 
+    var date = new Date(newest);
+    date = date.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    document.getElementById('datadate').innerHTML = date;
+
     var data = [];
 
     for (var i = 0; i < countries.length; i++) {
@@ -81,7 +86,7 @@ function plotChart() {
         line["width"] = 1;
       };
       item["line"] = line;
-      if (item["y"][item["y"].length - 1] != "" && item.name != "Uzbekistan" && item.name != "Cruise Ship") {
+      if (item["y"][item["y"].length - 1] != "" && item.name != "Cruise Ship") {
         data.push(item);
       }
     }
@@ -117,9 +122,9 @@ function plotChart() {
         type: 'date'
       },
       yaxis: {
-        range: [0, 50],
+        range: [0, 40],
         type: 'linear',
-        fixedrange: true
+        fixedrange: false
       },
       annotations: [],
       showlegend: false,
